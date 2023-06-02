@@ -22,10 +22,8 @@ type Edge<T> = {
   node: T
 }
 
-type UserCollectionResponse<T> = {
-  userCollection: {
-    edges: Edge<T>[]
-  }
+type CollectionResponse<T> = {
+  edges: Edge<T>[]
 }
 
 interface CollectionSelect<T> {
@@ -115,10 +113,11 @@ class GrafbaseClient {
 
   public async userCollection<T extends UserSelect>(
     request: UserCollectionArgs<T>
-  ): Promise<UserCollectionResponse<UserFetchPayload<T>>> {
+  ): Promise<CollectionResponse<UserFetchPayload<T>>> {
     const query = new CollectionQuery('userCollection', request)
+    const result = await this.request(query.toString())
 
-    return this.request(query.toString())
+    return result['userCollection']
   }
 }
 
@@ -141,7 +140,7 @@ async function main() {
     }
   })
 
-  console.log(result.userCollection.edges[0].node.id)
+  console.log(result.edges[0].node.id)
   console.log(JSON.stringify(result, null, 2))
 }
 
