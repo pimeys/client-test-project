@@ -40,11 +40,6 @@ interface CollectionArgs<T> {
   orderBy?: T
 }
 
-interface CollectionInput<T, U> {
-  args: CollectionArgs<T>
-  fields: CollectionSelect<U>
-}
-
 class CollectionQuery<T, U extends object> {
   collection: string
   input: CollectionInput<T, U>
@@ -55,13 +50,13 @@ class CollectionQuery<T, U extends object> {
   }
 
   public toString(): string {
-    var params = Object
+    const params = Object
       .entries(this.input.args)
       .filter(([_, val]) => val)
       .map(([key, val]) => `${key}: ${val}`)
-      .join(',')
+      .join(', ')
 
-    var select = Object
+    const select = Object
       .entries(this.input.fields.edges.node)
       .filter(([_, val]) => val)
       .map(([key, _]) => `${key}`)
@@ -79,25 +74,84 @@ class CollectionQuery<T, U extends object> {
   }
 }
 
+class Query<T, U extends object> {
+  collection: string
+  queryName: string
+  input: FetchInput<T, U>
+  typeInfo: Record<string, string>
+
+  constructor(
+    collection: string,
+    queryName: string,
+    input: FetchInput<T, U>,
+    typeInfo: Record<string, string>
+  ) {
+    this.collection = collection
+    this.queryName = queryName
+    this.input = input
+    this.typeInfo = typeInfo
+  }
+
+  public toString(): string {
+    const params = Object
+      .entries(this.input.by)
+      .map(([key, _]) => `$${key}: ${this.typeInfo[key]}`)
+      .join(', ')
+
+    const filter = Object
+      .entries(this.input.by)
+      .map(([key, _]) => `${key}: $${key}`)
+      .join(', ')
+
+    const select = Object
+      .entries(this.input.fields)
+      .filter(([_, val]) => val)
+      .map(([key, _]) => `${key}`)
+      .join(' ')
+
+    return gql`
+      query ${this.queryName}(${params}) {
+        ${this.collection}(by: { ${filter} }) { ${select} }
+      }
+    `
+  }
+}
+
 export type SelectSubset<T, U> = {
   [key in keyof T]: key extends keyof U ? T[key] : never
 }
 
-type UserCollectionArgs<T> = {
+interface CollectionInput<T, U> {
+  args: CollectionArgs<T>
+  fields: CollectionSelect<U>
+}
+
+type UserCollectionInput<T> = {
   args: CollectionArgs<UserOrderByInput>
   fields: { edges: { node: SelectSubset<T, UserSelect> } }
+}
+
+type FetchInput<T, U extends object> = {
+  by: Record<string, any>,
+  fields: SelectSubset<T, U>
+}
+
+type UserFetchInput<T> = {
+  by: { id: string },
+  fields: SelectSubset<T, UserSelect>
 }
 
 export type TruthyKeys<T> = keyof {
   [K in keyof T as T[K] extends false | undefined | null ? never : K]: K
 }
 
-export type UserFetchPayload<S extends boolean | null | undefined | UserSelect> = {
+export type UserFetchPayload<S extends UserSelect> = {
   [P in TruthyKeys<S>]: P extends keyof UserNode ? UserNode[P] : never
 }
 
 class GrafbaseClient {
   conn: GraphQLClient
+  typeInfo: Record<string, Record<string, string>>
 
   constructor(endpoint: string, apiKey: string) {
     this.conn = new GraphQLClient(endpoint, {
@@ -105,19 +159,41 @@ class GrafbaseClient {
         'x-api-key': apiKey
       }
     })
+
+    this.typeInfo = {
+      user: {
+        id: 'ID!',
+        name: 'String!',
+        createdAt: 'DateTime!',
+        updatedAt: 'DateTime'
+      }
+    }
   }
 
-  async request(query: string): Promise<any> {
-    return await this.conn.request(query)
+  async request(query: string, params?: Record<string, any>): Promise<any> {
+    if (params) {
+      return await this.conn.request(query, params)
+    } else {
+      return await this.conn.request(query)
+    }
   }
 
   public async userCollection<T extends UserSelect>(
-    request: UserCollectionArgs<T>
+    request: UserCollectionInput<T>
   ): Promise<CollectionResponse<UserFetchPayload<T>>> {
     const query = new CollectionQuery('userCollection', request)
     const result = await this.request(query.toString())
 
     return result['userCollection']
+  }
+
+  public async user<T extends UserSelect>(
+    request: UserFetchInput<T>
+  ): Promise<UserFetchPayload<T>> {
+    const query = new Query('user', 'getUser', request, this.typeInfo['user'])
+    const result = await this.request(query.toString(), request.by)
+
+    return result['user']
   }
 }
 
@@ -142,6 +218,19 @@ async function main() {
 
   console.log(result.edges[0].node.id)
   console.log(JSON.stringify(result, null, 2))
+
+  const result2 = await client.user({
+    by: { id: 'user_01H1XQY17SPBCJMEXRN48PDQB9' },
+    fields: {
+      id: true,
+      name: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  })
+
+  console.log(result2.id)
+  console.log(JSON.stringify(result2, null, 2))
 }
 
 main().catch(async (e) => {
