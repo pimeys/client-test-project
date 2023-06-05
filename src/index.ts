@@ -3,19 +3,65 @@ import { GraphQLClient, gql } from 'graphql-request'
 type UserNode = {
   id: string
   name: string | null
+  address: AddressType | null
   createdAt: Date
   updatedAt: Date
+}
+
+type AddressSelect = {
+  street?: boolean | null
 }
 
 type UserSelect = {
   id?: boolean | null
   name?: boolean | null
+  address?: AddressSelect | null
   createdAt?: boolean | null
   updatedAt?: boolean | null
 }
 
+type AddressType = {
+  street: string
+}
+
 interface UserOrderByInput {
   createdAt: OrderByDirection
+}
+
+export type SelectSubset<T, U> = {
+  [key in keyof T]: key extends keyof U ? T[key] : never
+}
+
+interface CollectionInput<T, U> {
+  args: CollectionArgs<T>
+  fields: CollectionSelect<U>
+}
+
+type UserCollectionInput<T> = {
+  args: CollectionArgs<UserOrderByInput>
+  fields: { edges: { node: SelectSubset<T, UserSelect> } }
+}
+
+type FetchInput<T, U extends object> = {
+  by: Record<string, any>,
+  fields: SelectSubset<T, U>
+}
+
+type UserFetchInput<T> = {
+  by: { id: string },
+  fields: SelectSubset<T, UserSelect>
+}
+
+type TruthyKeys<T> = keyof {
+  [K in keyof T as T[K] extends false | undefined | null ? never : K]: K
+}
+
+type AddressFetchPayload<S extends AddressSelect | null | undefined> = {
+  [P in TruthyKeys<S>]: P extends keyof AddressType ? AddressType[P] : never
+}
+
+type UserFetchPayload<S extends UserSelect> = {
+  [P in TruthyKeys<S>]: P extends 'address' ? AddressFetchPayload<S[P]> | null : P extends keyof UserNode ? UserNode[P] : never
 }
 
 type Edge<T> = {
@@ -50,16 +96,40 @@ class CollectionQuery<T, U extends object> {
   }
 
   public toString(): string {
+    const filterSelection = (val: object | boolean): boolean => {
+      if (typeof val === 'object') {
+        const filtered = Object
+          .entries(val)
+          .filter(([_, val]) => filterSelection(val))
+
+        return filtered.length > 0
+      } else {
+        return val
+      }
+    }
+
+    const renderSelection = (key: string, val: object | boolean): string => {
+      if (typeof val === 'object') {
+        const inner = Object
+          .entries(val)
+          .map(([key, val]) => renderSelection(key, val))
+          .join(' ')
+
+        return `${key} { ${inner} }`
+      } else {
+        return key
+      }
+    }
+
     const params = Object
       .entries(this.input.args)
-      .filter(([_, val]) => val)
       .map(([key, val]) => `${key}: ${val}`)
       .join(', ')
 
     const select = Object
       .entries(this.input.fields.edges.node)
-      .filter(([_, val]) => val)
-      .map(([key, _]) => `${key}`)
+      .filter(([_, val]) => filterSelection(val))
+      .map(([key, val]) => renderSelection(key, val))
       .join(' ')
 
     return gql`
@@ -115,38 +185,6 @@ class Query<T, U extends object> {
       }
     `
   }
-}
-
-export type SelectSubset<T, U> = {
-  [key in keyof T]: key extends keyof U ? T[key] : never
-}
-
-interface CollectionInput<T, U> {
-  args: CollectionArgs<T>
-  fields: CollectionSelect<U>
-}
-
-type UserCollectionInput<T> = {
-  args: CollectionArgs<UserOrderByInput>
-  fields: { edges: { node: SelectSubset<T, UserSelect> } }
-}
-
-type FetchInput<T, U extends object> = {
-  by: Record<string, any>,
-  fields: SelectSubset<T, U>
-}
-
-type UserFetchInput<T> = {
-  by: { id: string },
-  fields: SelectSubset<T, UserSelect>
-}
-
-export type TruthyKeys<T> = keyof {
-  [K in keyof T as T[K] extends false | undefined | null ? never : K]: K
-}
-
-export type UserFetchPayload<S extends UserSelect> = {
-  [P in TruthyKeys<S>]: P extends keyof UserNode ? UserNode[P] : never
 }
 
 class GrafbaseClient {
@@ -209,6 +247,9 @@ async function main() {
         node: {
           id: true,
           name: true,
+          address: { 
+            street: true
+          },
           createdAt: true,
           updatedAt: true
         }
@@ -216,21 +257,22 @@ async function main() {
     }
   })
 
-  console.log(result.edges[0].node.id)
+  // console.log(result.edges[0].node.id)
+  // console.log(result.edges[0].node.address?.street)
   console.log(JSON.stringify(result, null, 2))
 
-  const result2 = await client.user({
-    by: { id: 'user_01H1XQY17SPBCJMEXRN48PDQB9' },
-    fields: {
-      id: true,
-      name: true,
-      createdAt: true,
-      updatedAt: true
-    }
-  })
+  // const result2 = await client.user({
+  //   by: { id: 'user_01H1XQY17SPBCJMEXRN48PDQB9' },
+  //   fields: {
+  //     id: true,
+  //     name: true,
+  //     createdAt: true,
+  //     updatedAt: true
+  //   }
+  // })
 
-  console.log(result2.id)
-  console.log(JSON.stringify(result2, null, 2))
+  // console.log(result2.id)
+  // console.log(JSON.stringify(result2, null, 2))
 }
 
 main().catch(async (e) => {
