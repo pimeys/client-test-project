@@ -2,6 +2,8 @@ import { GrafbaseClient } from "./generated";
 
 const client = new GrafbaseClient("http://127.0.0.1:4000/graphql", "");
 
+// play around with the selection. by removing a field from the selection, it's
+// not in the return type anymore and you should get a compilation error.
 async function main() {
   const result = await client.blogCollection({
     args: {
