@@ -11,6 +11,7 @@
         nativeBuildInputs = [ pkgs.bashInteractive ];
         buildInputs = with pkgs; [
           nodePackages.pnpm
+          nodePackages.prettier
         ];
       };
     });
