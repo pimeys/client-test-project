@@ -1,5 +1,6 @@
 import { GraphQLClient, gql } from "graphql-request";
 
+// A full type we return per single blog
 export type BlogNode = {
   id: string;
   name: string;
@@ -8,10 +9,12 @@ export type BlogNode = {
   updatedAt: Date;
 };
 
+// A full type we return per multiple blogs
 export type BlogEdges = {
   edges: { node: BlogNode }[];
 };
 
+// A full type we return per single user
 export type UserNode = {
   id: string;
   name: string;
@@ -22,10 +25,12 @@ export type UserNode = {
   updatedAt: Date;
 };
 
+// Type for selecting a single address
 export type AddressSelect = {
   street?: boolean | null;
 };
 
+// Interface for a relation select from the many side
 export interface RelationManySelect<
   T,
   U extends Record<string, null | boolean | object>
@@ -38,6 +43,7 @@ export interface RelationManySelect<
   fields: U;
 }
 
+// Interface for selecting a blog
 export type BlogSelect = {
   id?: boolean | null;
   name?: boolean | null;
@@ -46,11 +52,13 @@ export type BlogSelect = {
   updatedAt?: boolean | null;
 };
 
+// Interface for selecting a collection of blogs
 export type BlogCollectionSelect = {
   fields: { edges: { node: BlogSelect } };
   args: CollectionArgs<BlogOrderByInput>;
 };
 
+// Interface for selecting a user
 export type UserSelect = {
   id?: boolean | null;
   name?: boolean | null;
@@ -61,68 +69,84 @@ export type UserSelect = {
   updatedAt?: boolean | null;
 };
 
+// A full return type of an address
 export type AddressNode = {
   street: string;
 };
 
+// Possible fields we can use to order a blog collection
 export interface BlogOrderByInput {
   createdAt: OrderByDirection;
 }
 
+// Possible fields we can use to order a user collection
 export interface UserOrderByInput {
   createdAt: OrderByDirection;
 }
 
+// A subset selection, defining the fields of the return type.
 export type SelectSubset<T, U> = {
   [key in keyof T]: key extends keyof U ? T[key] : never;
 };
 
+// Generic input type to fetch a collection
 export interface CollectionInput<T, U> {
   args: CollectionArgs<T>;
   fields: CollectionSelect<U>;
 }
 
+// Output type for returing a collection of users with
+// fields from the selection.
 export type UserCollectionEdges<T> = {
   edges: { node: SelectSubset<T, UserSelect> };
 };
 
+// Input to fetch a collection of users
 export type UserCollectionInput<T> = {
   args: CollectionArgs<UserOrderByInput>;
   fields: UserCollectionEdges<T>;
 };
 
+// Input type for selecting a collection of blogs.
 export type BlogCollectionEdges<T> = {
   edges: { node: SelectSubset<T, BlogSelect> };
 };
 
+// Input to fetch a collection of blogs
 export type BlogCollectionInput<T> = {
   args: CollectionArgs<BlogOrderByInput>;
   fields: BlogCollectionEdges<T>;
 };
 
+// A generic input type to fetch one document
 export type FetchInput<T, U extends object> = {
   by: Record<string, any>;
   fields: SelectSubset<T, U>;
 };
 
+// A generic input type to fetch one blog
 export type BlogFetchInput<T> = {
   by: { id: string };
   fields: SelectSubset<T, BlogSelect>;
 };
 
+// A generic input type to fetch one user
 export type UserFetchInput<T> = {
   by: { id: string };
   fields: SelectSubset<T, UserSelect>;
 };
 
+// This type allows us to iterate all truethy values of an object for selection.
 export type TruthyKeys<T> = keyof {
   [K in keyof T as T[K] extends false | undefined | null ? never : K]: K;
 };
 
+// Payload to return a subset of fields of an address.
 export type AddressFetchPayload<S extends AddressSelect | null | undefined> = {
   [P in TruthyKeys<S>]: P extends keyof AddressNode ? AddressNode[P] : never;
 };
 
+// Payload to return a subset of fields of a blog.
 export type BlogFetchPayload<S extends BlogSelect | null | undefined> =
   S extends BlogSelect
     ? {
@@ -134,12 +158,14 @@ export type BlogFetchPayload<S extends BlogSelect | null | undefined> =
       }
     : never;
 
+// Payload to return a subset of fields of collection of blogs.
 export type BlogCollectionFetchPayload<
   S extends BlogCollectionSelect | null | undefined
 > = S extends BlogCollectionSelect
   ? { edges: { node: BlogFetchPayload<S["fields"]["edges"]["node"]> }[] }
   : never;
 
+// Payload to return a subset of fields of a user.
 export type UserFetchPayload<S extends UserSelect | null | undefined> =
   S extends UserSelect
     ? {
@@ -177,6 +203,7 @@ export interface CollectionArgs<T> {
   orderBy?: T;
 }
 
+// True, if the value is true or a nested object has a true value
 function filterSelection(val: object | boolean): boolean {
   if (typeof val === "object") {
     const filtered = Object.entries(val).filter(([_, val]) =>
@@ -189,6 +216,7 @@ function filterSelection(val: object | boolean): boolean {
   }
 }
 
+// Render a selection for a value.
 function renderSelection(
   key: string,
   val: object | boolean,
@@ -213,6 +241,7 @@ function renderSelection(
   }
 }
 
+// Query collections with this.
 export class CollectionQuery<T, U extends object> {
   collection: string;
   input: CollectionInput<T, U>;
@@ -260,11 +289,15 @@ export class CollectionQuery<T, U extends object> {
   }
 }
 
+// Query single documents with this.
 export class Query<T, U extends object> {
   collection: string;
   queryName: string;
   input: FetchInput<T, U>;
+  // This here holds the type info of the input for parameterization.
   typeInfo: Record<string, string>;
+  // Relation lists are handled in a specific way, so we need to store them here.
+  // todo: not yet in use
   relationLists: Set<string>;
 
   constructor(
@@ -290,8 +323,10 @@ export class Query<T, U extends object> {
       .map(([key, _]) => `${key}: $${key}`)
       .join(", ");
 
+    // todo: handle relation lists correctly here
     const select = Object.entries(this.input.fields)
       .filter(([_, val]) => val)
+      // btw why do we need to cast `val` as `object | boolean`, figure out...
       .filter(([_, val]) => filterSelection(val as object | boolean))
       .map(([key, val]) => renderSelection(key, val as object | boolean))
       .join(" ");
