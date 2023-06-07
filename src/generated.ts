@@ -323,12 +323,17 @@ export class Query<T, U extends object> {
       .map(([key, _]) => `${key}: $${key}`)
       .join(", ");
 
-    // todo: handle relation lists correctly here
     const select = Object.entries(this.input.fields)
-      .filter(([_, val]) => val)
-      // btw why do we need to cast `val` as `object | boolean`, figure out...
-      .filter(([_, val]) => filterSelection(val as object | boolean))
-      .map(([key, val]) => renderSelection(key, val as object | boolean))
+      .filter(([key, val]: [string, any]) => {
+        return filterSelection(this.relationLists.has(key) ? val["fields"] : val);
+      })
+      .map(([key, val]: [string, any]) => {
+        if (this.relationLists.has(key)) {
+          return renderSelection(key, val["fields"], val["args"]);
+        } else {
+          return renderSelection(key, val);
+        }
+      })
       .join(" ");
 
     return gql`

@@ -73,6 +73,19 @@ async function main() {
       address: {
         street: true,
       },
+      blogs: {
+        args: {
+          first: 10,
+        },
+        fields: {
+          edges: {
+            node: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
       createdAt: true,
       updatedAt: true,
     },
@@ -81,6 +94,7 @@ async function main() {
   console.log(JSON.stringify(result3, null, 2));
   console.log(result3?.id);
   console.log(result3?.address?.street);
+  console.log(result3?.blogs?.edges[0].node.name)
 }
 
 main().catch(async (e) => {
