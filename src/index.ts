@@ -84,17 +84,23 @@ async function main() {
               name: true,
             },
           },
+          pageInfo: {
+            hasPreviousPage: true,
+            hasNextPage: true,
+            startCursor: true,
+            endCursor: true
+          }
         },
       },
       createdAt: true,
       updatedAt: true,
     },
-  });
+  })
 
-  console.log(JSON.stringify(result3, null, 2));
-  console.log(result3?.id);
-  console.log(result3?.address?.street);
-  console.log(result3?.blogs?.edges[0].node.name)
+  console.log(JSON.stringify(result3, null, 2))
+  console.log(result3?.id)
+  console.log(result3?.address?.street)
+  console.log(result3?.blogs)
 }
 
 main().catch(async (e) => {

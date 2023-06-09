@@ -1,5 +1,12 @@
 import { GraphQLClient, gql } from 'graphql-request'
 
+export interface PageInfo {
+  hasPreviousPage: boolean
+  hasNextPage: boolean
+  startCursor: string | null
+  endCursor: string | null
+}
+
 // A full type we return per single blog
 export interface BlogNode {
   id: string
@@ -9,9 +16,37 @@ export interface BlogNode {
   updatedAt: Date
 }
 
+export interface BlogEdge {
+  node: BlogNode
+  cursor: string
+}
+
 // A full type we return per multiple blogs
-export interface BlogEdges {
+export interface BlogConnection {
   edges: Edge<BlogNode>[]
+  pageInfo: PageInfo
+}
+
+export interface PageInfoSelect {
+  hasPreviousPage: boolean | null
+  hasNextPage: boolean | null
+  startCursor: boolean | null
+  endCursor: boolean | null
+}
+
+export interface BlogEdgesSelect {
+  cursor?: boolean | null
+  node: BlogSelect | null
+}
+
+export interface BlogConnectionSelect {
+  pageInfo?: PageInfoSelect | null
+  edges: BlogEdgesSelect | null
+}
+
+export interface BlogFieldsSelect {
+  args: CollectionArgs<BlogOrderByInput>
+  fields: BlogConnectionSelect
 }
 
 // A full type we return per single user
@@ -20,7 +55,7 @@ export interface UserNode {
   name: string
   address: AddressNode | null
   addresses: AddressNode[]
-  blogs: BlogEdges | null
+  blogs: BlogConnection | null
   createdAt: Date
   updatedAt: Date
 }
@@ -30,16 +65,20 @@ export interface AddressSelect {
   street?: boolean | null
 }
 
-// Interface for a relation select from the many side
-export interface RelationManySelect<
-  T,
-  U extends Record<string, null | boolean | object>
-> {
+export interface RelationManyArgs<T> {
   after?: string
   before?: string
   first?: number
   last?: number
   orderBy?: T
+}
+
+// Interface for a relation select from the many side
+export interface RelationManySelect<
+  T,
+  U extends Record<any, any>
+> {
+  args: RelationManyArgs<T>
   fields: U
 }
 
@@ -52,19 +91,13 @@ export interface BlogSelect {
   updatedAt?: boolean | null
 }
 
-// Interface for selecting a collection of blogs
-export interface BlogCollectionSelect {
-  fields: { edges: { node: BlogSelect } }
-  args: CollectionArgs<BlogOrderByInput>
-}
-
 // Interface for selecting a user
 export interface UserSelect {
   id?: boolean | null
   name?: boolean | null
   address?: AddressSelect | null
   addresses?: AddressSelect | null
-  blogs?: BlogCollectionInput<BlogSelect>
+  blogs?: RelationManySelect<BlogOrderByInput, BlogConnectionSelect>
   createdAt?: boolean | null
   updatedAt?: boolean | null
 }
@@ -141,6 +174,12 @@ export type TruthyKeys<T> = keyof {
   [K in keyof T as T[K] extends false | undefined | null ? never : K]: K
 }
 
+export type PageInfoFetchPayload<
+  S extends PageInfoSelect | null | undefined
+> = S extends PageInfoSelect
+  ? { [P in TruthyKeys<S>]: P extends keyof PageInfo ? PageInfo[P] : never }
+  : never
+
 // Payload to return a subset of fields of an address.
 export type AddressFetchPayload<S extends AddressSelect | null | undefined> = {
   [P in TruthyKeys<S>]: P extends keyof AddressNode ? AddressNode[P] : never
@@ -158,11 +197,34 @@ export type BlogFetchPayload<S extends BlogSelect | null | undefined> =
       }
     : never
 
-// Payload to return a subset of fields of collection of blogs.
+export type BlogEdgesFetchPayload<
+  S extends BlogEdgesSelect | null | undefined
+> = S extends BlogEdgesSelect
+  ? {
+      [P in TruthyKeys<S>]: P extends 'node'
+        ? BlogFetchPayload<S[P]>
+        : P extends keyof BlogEdge
+        ? BlogEdge[P]
+        : never
+    }
+  : never
+
+export type BlogConnectionFetchPayload<
+  S extends BlogConnectionSelect | null | undefined
+> = S extends BlogConnectionSelect
+  ? {
+      [P in TruthyKeys<S>]: P extends 'pageInfo'
+        ? PageInfoFetchPayload<S[P]> | null
+        : P extends 'edges'
+        ? BlogEdgesFetchPayload<S[P]>[]
+        : never
+    }
+  : never
+
 export type BlogCollectionFetchPayload<
-  S extends BlogCollectionSelect | null | undefined
-> = S extends BlogCollectionSelect
-  ? { edges: { node: BlogFetchPayload<S['fields']['edges']['node']> }[] }
+  S extends BlogFieldsSelect | null | undefined
+> = S extends BlogFieldsSelect
+  ? BlogConnectionFetchPayload<S['fields']> | null
   : never
 
 // Payload to return a subset of fields of a user.
