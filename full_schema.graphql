@@ -1,0 +1,246 @@
+type Address {
+	street: String!
+}
+"""
+Address input type.
+"""
+input AddressInput {
+	street: String!
+}
+type Blog {
+	name: String!
+	owner: User!
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input BlogByInput {
+	id: ID
+}
+type BlogConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [BlogEdge]
+}
+"""
+Input to create a Blog
+"""
+input BlogCreateInput {
+	name: String!
+	owner: BlogToUserCreateUserRelation!
+}
+type BlogCreatePayload {
+	blog: Blog
+}
+type BlogDeletePayload {
+	deletedId: ID!
+}
+type BlogEdge {
+	node: Blog!
+	cursor: String!
+}
+input BlogOrderByInput {
+	createdAt: OrderByDirection
+}
+"""
+Input to create a Blog for the BlogToUser relation of User
+"""
+input BlogToUserCreateBlog {
+	name: String!
+}
+"""
+Input to link to or create a Blog for the BlogToUser relation of User
+"""
+input BlogToUserCreateBlogRelation {
+	create: BlogToUserCreateBlog
+	link: ID
+}
+"""
+Input to create a User for the BlogToUser relation of Blog
+"""
+input BlogToUserCreateUser {
+	name: String!
+	address: AddressInput
+	addresses: [AddressInput!]!
+	blogs: [BlogToUserCreateBlogRelation!]
+}
+"""
+Input to link to or create a User for the BlogToUser relation of Blog
+"""
+input BlogToUserCreateUserRelation {
+	create: BlogToUserCreateUser
+	link: ID
+}
+"""
+Input to link/unlink to or create a Blog for the BlogToUser relation of User
+"""
+input BlogToUserUpdateBlogRelation {
+	create: BlogToUserCreateBlog
+	link: ID
+	unlink: ID
+}
+"""
+Input to link/unlink to or create a User for the BlogToUser relation of Blog
+"""
+input BlogToUserUpdateUserRelation {
+	create: BlogToUserCreateUser
+	link: ID
+	unlink: ID
+}
+"""
+Input to update a Blog
+"""
+input BlogUpdateInput {
+	name: String
+	owner: BlogToUserUpdateUserRelation
+}
+type BlogUpdatePayload {
+	blog: Blog
+}
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
+profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+
+This scalar is a description of an exact instant on the timeline such as the instant that a user account was created.
+
+# Input Coercion
+
+When expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.
+
+# Result Coercion
+
+Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.
+For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
+"""
+scalar DateTime
+type Mutation {
+	"""
+	Create a User
+	"""
+	userCreate(input: UserCreateInput!): UserCreatePayload
+	"""
+	Update a User
+	"""
+	userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
+	"""
+	Delete a User by ID or unique field
+	"""
+	userDelete(by: UserByInput!): UserDeletePayload
+	"""
+	Create a Blog
+	"""
+	blogCreate(input: BlogCreateInput!): BlogCreatePayload
+	"""
+	Update a Blog
+	"""
+	blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogUpdatePayload
+	"""
+	Delete a Blog by ID or unique field
+	"""
+	blogDelete(by: BlogByInput!): BlogDeletePayload
+}
+enum OrderByDirection {
+	ASC
+	DESC
+}
+type PageInfo {
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
+type Query {
+	"""
+	Query a single User by an ID or a unique field
+	"""
+	user(by: UserByInput!): User
+	"""
+	Paginated query to fetch the whole list of `User`.
+	"""
+	userCollection(after: String, before: String, first: Int, last: Int, orderBy: UserOrderByInput): UserConnection
+	"""
+	Query a single Blog by an ID or a unique field
+	"""
+	blog(by: BlogByInput!): Blog
+	"""
+	Paginated query to fetch the whole list of `Blog`.
+	"""
+	blogCollection(after: String, before: String, first: Int, last: Int, orderBy: BlogOrderByInput): BlogConnection
+}
+type User {
+	name: String!
+	address: Address
+	addresses: [Address!]!
+	blogs(after: String, before: String, first: Int, last: Int, orderBy: UserOrderByInput): BlogConnection
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input UserByInput {
+	id: ID
+}
+type UserConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [UserEdge]
+}
+"""
+Input to create a User
+"""
+input UserCreateInput {
+	name: String!
+	address: AddressInput
+	addresses: [AddressInput!]!
+	blogs: [BlogToUserCreateBlogRelation!]
+}
+type UserCreatePayload {
+	user: User
+}
+type UserDeletePayload {
+	deletedId: ID!
+}
+type UserEdge {
+	node: User!
+	cursor: String!
+}
+input UserOrderByInput {
+	createdAt: OrderByDirection
+}
+"""
+Input to update a User
+"""
+input UserUpdateInput {
+	name: String
+	address: AddressInput
+	addresses: [AddressInput!]
+	blogs: [BlogToUserUpdateBlogRelation!]
+}
+type UserUpdatePayload {
+	user: User
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
